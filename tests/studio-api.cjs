@@ -1,0 +1,37 @@
+const assert=require('node:assert/strict');
+const ts=require('typescript');const fs=require('node:fs');
+require.extensions['.ts']=(mod,filename)=>mod._compile(ts.transpileModule(fs.readFileSync(filename,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,filename);
+const {POST}=require('../app/api/draft/route.ts');
+const {checkPhotoPlan}=require('../app/photo-plan.ts');
+const {defaultCustomer}=require('../app/customer-settings.ts');
+process.env.OPENAI_API_KEY='test-only';
+let captured=[];
+global.fetch=async(url,options)=>{
+ const payload=JSON.parse(options.body);captured.push(payload);
+ const meta=JSON.parse(payload.input[0].content[0].text);
+ const photoPlan={items:meta.photos.map((_,i)=>({photo:meta.photos.length-i,placement:'활동 소개 뒤',reason:'구성 제안',evidence:'없는 순서 근거'})),chronologyConfirmed:true,note:'사진 흐름'};
+ const output=meta.mode==='rewrite'?{paragraph:'수정한 문단입니다.',notes:['문장 흐름을 다듬었습니다.']}:meta.mode==='photo-plan'?{photoPlan}:{titles:['제목1','제목2','제목3'],body:'가'.repeat(550),tags:['부산진구','부산진구의회','최정웅','최정웅의원','기록','소통','이야기','동네','현장','활동'],placements:[],review:['참고 문체 분석'],photoPlan};
+ return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify(output)}]}]});
+};
+const references=Array.from({length:3},(_,i)=>({id:`ref${i}`,customerId:'choi',title:`과거글${i}`,body:'참고할 문체입니다. 과거 행사 사실입니다.',createdAt:'2026-10-01T00:00:00Z'}));
+const photo={name:'photo.jpg',description:'현장',image:'data:image/jpeg;base64,/9j/'};
+const send=data=>POST(new Request('http://localhost/api/draft',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}));
+(async()=>{
+ const generated=await send({mode:'generate',topic:'오늘 기록',facts:'확인된 활동',length:0,customer:defaultCustomer,references,photos:[]});assert.equal(generated.status,200);
+ assert.equal(JSON.parse(captured.at(-1).input[0].content[0].text).styleReferences.length,3);
+ assert.ok(captured.at(-1).instructions.includes('과거 글의 사실'));
+ await send({mode:'generate',topic:'오늘 기록',facts:'확인된 활동',references:references.slice(0,2)});assert.equal(JSON.parse(captured.at(-1).input[0].content[0].text).styleReferences.length,0);
+ assert.equal((await send({mode:'generate',topic:'오늘',facts:'현장',references:[{...references[0],customerId:'other'}]})).status,400);
+ const rewrite={mode:'rewrite',body:'첫째 문단\n\n둘째 문단',customer:defaultCustomer,action:'간결하게',selection:{start:7,end:12,text:'둘째 문단'},references};
+ const rewritten=await send(rewrite);assert.equal(rewritten.status,200);assert.equal((await rewritten.json()).paragraph,'수정한 문단입니다.');
+ assert.equal((await send({...rewrite,selection:{...rewrite.selection,text:'다른 문단'}})).status,400);
+ assert.equal((await send({...rewrite,action:'없는 작업'})).status,400);
+ const planResponse=await send({mode:'photo-plan',facts:'행사 순서는 제공하지 않았습니다.',photos:[photo,photo]});assert.equal(planResponse.status,200);const plan=(await planResponse.json()).photoPlan;assert.equal(plan.chronologyConfirmed,false);assert.match(plan.note,/시간순은 확인되지/);assert.equal(plan.items[0].photo,2);
+ assert.equal((await send({mode:'photo-plan',photos:[]})).status,400);
+ assert.equal((await send({mode:'photo-plan',photos:[{...photo,image:'https://example.org/a.jpg'}]})).status,400);
+ assert.throws(()=>checkPhotoPlan({items:[{photo:1},{photo:1}]},2,''));
+ const verified=checkPhotoPlan({items:[{photo:1,evidence:'개회식이 먼저 진행되었다'},{photo:2,evidence:'이후 간담회를 진행했다'}],chronologyConfirmed:true,note:'자료 근거'},2,'개회식이 먼저 진행되었다. 이후 간담회를 진행했다.');assert.equal(verified.chronologyConfirmed,true);
+ console.log('PASS stage 2: 3-post style activation and customer isolation');
+ console.log('PASS stage 3: paragraph-only rewrite and stale selection rejection');
+ console.log('PASS stage 3: image input and uncertain chronology downgrade');
+})().catch(error=>{console.error(error);process.exitCode=1;});

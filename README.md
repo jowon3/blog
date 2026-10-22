@@ -1,36 +1,54 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 진심을 담다 · 블로그 스튜디오
 
-## Getting Started
+부산진구 의정활동 블로그의 초안 작성, 편집, 검토와 저장을 돕는 로컬 Next.js 앱입니다.
 
-First, run the development server:
+## 실행
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+1. `npm install`
+2. `.env.example`을 참고해 `.env.local`에 `OPENAI_API_KEY`를 설정합니다. 키는 브라우저로 전달되지 않습니다.
+3. `npm run dev` 후 http://localhost:3000 에 접속합니다.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`OPENAI_MODEL`로 사용하는 모델을 변경할 수 있습니다. 기본값은 `gpt-4.1-mini`입니다. API 사용 요금은 해당 API 계정에 청구됩니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 사용
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- 주제와 실제 활동 내용을 입력하고 분량·분위기를 선택합니다.
+- 고객별 사진 폴더를 읽기 전용으로 연결하거나 사진을 직접 업로드할 수 있습니다. JPG·PNG·WEBP를 장당 5MB까지 지원합니다. 사진을 최대 6장 선택하고 순서를 조정하면, 초안 생성 시 선택된 사진의 축소본(긴 변 최대 1600px)과 설명이 서버를 거쳐 OpenAI로 전달됩니다. 사진만으로 인물 신원이나 고객의 참석·발언을 추정하지 않도록 지시합니다.
+- 초안 생성 시 제목 3개와 본문, 필수 키워드 4개를 포함한 해시태그 10개를 추천합니다. 수동 해시태그는 추가됩니다.
+- 분량은 공백·줄바꿈·소제목을 포함하고 제목과 해시태그를 제외합니다. 범위를 벗어나면 한 번 재시도하고, 여전히 벗어나면 검토 의견에 표시합니다.
+- 제목과 본문은 직접 편집할 수 있습니다. 문장 검토는 본문에 수정 결과를 적용하고 검토 의견을 보여줍니다.
+- 원고 저장은 현재 브라우저의 localStorage를 사용합니다. 브라우저 데이터 삭제 시 원고도 사라집니다. 텍스트 다운로드로 별도 보관할 수 있습니다.
+- 전체 복사는 제목, 본문, 해시태그를 복사합니다. 사진 배치·검토 의견은 편집 참고용입니다.
 
-## Learn More
+API 키가 없을 때에도 수동 작성·편집·저장·복사·다운로드를 사용할 수 있습니다. AI 생성과 검토는 키 설정 후 서버를 재시작해야 합니다.
 
-To learn more about Next.js, take a look at the following resources:
+현재 로컬 작업용입니다. 인터넷에 공개하기 전에 인증 및 API 사용량 제한을 추가하세요.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 고객별 사진 폴더
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+폴더 선택은 사용자가 브라우저의 선택창에서 직접 진행합니다. File System Access API의 읽기 권한만 요청하며 원본을 쓰거나 삭제하는 동작은 없습니다. 연결 핸들은 고객 ID별로 IndexedDB에 저장합니다. 전체 폴더 경로나 사진 원본을 서버에 저장하지 않습니다.
 
-## Deploy on Vercel
+저장된 폴더의 사진은 ‘사진 새로고침’으로 다시 읽습니다. 하위 폴더는 제외합니다. 권한이 만료되면 다시 허용하거나 폴더를 다시 선택해야 합니다. API 미지원 브라우저는 폴더 파일 선택으로 대체하며, 새 파일을 읽으려면 매번 같은 폴더를 선택해야 합니다. 최초 선택·재허용은 브라우저 보안상 자동으로 처리할 수 없습니다. localhost 또는 HTTPS에서 사용하세요.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+폴더 목록과 선택한 사진은 별개입니다. 고객을 바꾸면 현재 사진 선택은 해제됩니다. 폴더에서 사라지거나 수정된 파일은 새로고침한 목록에 반영되지만, 이미 원고에 선택한 사진은 선택 시점의 복사본이므로 필요하면 선택 해제 후 다시 선택하세요. 사진 선택과 순서는 원고 저장 대상이 아니며 새로고침 시 해제됩니다. 연결 설정은 계속 유지됩니다.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 문체 참고 · 수정 이력 · 발행 관리
+
+- 고객별 블로그 설정의 ‘문체 참고 포스팅’에서 실제 제목과 본문을 3~5개 등록합니다. 3개 이상 등록된 경우 해당 고객의 글만 AI에 전달해 문체·문단 구성·표현 방식을 참고합니다. 참고 자료는 과거 사실을 새 글로 가져오는 용도가 아닙니다. 원문은 이 브라우저의 별도 `jin-reference-posts` 키에 저장합니다.
+- 원고 편집창의 ‘선택 문단만 AI로 다듬기’를 열어 빈 줄 기준 문단을 선택하고 네 가지 수정 방식 중 하나를 고릅니다. 제안을 확인하고 ‘이 문단에 적용’을 눌러야 본문에 반영됩니다. 선택 이후 원문이 바뀌었으면 적용을 중지합니다.
+- ‘사진 배치’ 탭에서 사진 순서와 삽입 위치를 별도로 분석할 수 있습니다. 주요 내용에 확인된 행사 순서를 적어 주세요. 입력 자료의 근거가 없으면 시간순으로 단정하지 않고 편집 구성안으로 표시합니다. 추천 순서를 적용하면 사진 번호가 달라지므로 원고 생성 또는 재분석으로 삽입 위치를 갱신해야 합니다.
+- ‘유사 표현’은 해당 고객의 참고 포스팅 및 저장 원고와 현재 제목·본문을 비교합니다. 제목은 정규화한 3글자 조합의 Dice 유사도 45% 이상, 본문은 공통 4어절(정규화 12자 이상)을 표시합니다. 의미 중복이나 표절 여부를 판단하지 않습니다.
+- 원고 저장, AI 초안 생성, 검토·문단 수정 적용, 버전 복원 시 본문 버전을 기록합니다. 매 키 입력을 저장하는 방식은 아닙니다. 원고·고객 전환 전에도 편집 내용을 저장합니다. ‘수정 이력’에서 내용을 확인하고 복원할 수 있으며, 복원 전의 미저장 편집 내용도 보존됩니다. 저장 공간 부족 시 기존 기록을 자동 삭제하지 않고 안내합니다.
+- ‘저장한 원고’에서 고객과 월을 선택해 최초 저장·생성일 기준 작성 수, 실제 발행일 기준 발행 수, 이달 작성한 미발행 수를 확인합니다. ‘발행 완료로 기록’은 수동 기록이며 외부 블로그 게시 기능이 아닙니다. 작성일이 없던 기존 원고는 월간 집계에서 제외하고 별도로 알립니다. 고객 정보가 없던 기존 원고는 기본 고객(최정웅 의원)에 연결해 보존합니다.
+
+기존 `jin-customers`, `jin-drafts`, 폴더 연결 데이터는 삭제하지 않습니다. 새 메타데이터는 저장할 때 기존 원고에 덧붙이며, 참고 글은 별도로 보관합니다. 자료가 손상되어 읽을 수 없으면 해당 저장을 중지합니다.
+
+검증: `npm test`는 외부 AI 호출 없이 고객 분리·기존 데이터 보존·복원·월간 집계·참고 문체 전달·문단 경계·사진 순서 응답을 테스트합니다. 실제 AI 문체와 사진 판단의 품질은 API 키 설정 후 사용자의 실제 자료로 추가 확인해야 합니다.
+
+## 해시태그 설정
+
+고객 설정의 ‘필수 해시태그’에서 태그를 추가·개별 삭제하거나 일괄 수정합니다. 현재 브라우저의 고객 설정에 저장되며 원고 생성·재생성·전체 복사·파일 백업에 항상 포함됩니다. 기존 기본 고객은 기존 4개 태그를 초기값으로 유지하고, 새 고객은 빈 필수 태그 목록으로 시작합니다. 빈 목록 저장도 지원합니다.
+
+‘추가 해시태그’는 입력 후 추가 버튼 또는 Enter로 등록하며 개별 삭제할 수 있습니다. AI 추천은 체크박스로 선택·제외합니다. 수동 추가와 추천 선택·제외 상태는 해당 원고의 저장 데이터와 수정 이력에만 포함됩니다. 재생성해도 수동 추가 태그와 같은 추천 태그의 제외 상태를 유지합니다. 필수 태그는 추천 선택과 관계없이 항상 포함되며, 최종 목록의 #과 중복은 자동 정리됩니다. ‘해시태그만 복사’는 최종 목록만 복사합니다.
+
+기존 저장 원고의 태그는 읽을 때 해석하며 기존 데이터를 일괄 덮어쓰거나 삭제하지 않습니다. 원고 저장 시 분리된 새 설정을 함께 기록합니다.

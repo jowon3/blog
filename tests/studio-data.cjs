@@ -1,0 +1,18 @@
+const assert = require('node:assert/strict');
+const ts = require('typescript');
+const fs = require('node:fs');
+const Module = require('node:module');
+const mod = new Module(require('node:path').resolve('app/studio-data.ts'), module);
+mod._compile(ts.transpileModule(fs.readFileSync('app/studio-data.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,'studio-data.cjs');
+const {blankDraft,recordDraft,restoreSnapshot,monthlyStats,draftCustomer,paragraphs,replaceParagraph,compareWriting}=mod.exports;
+const legacy={...blankDraft,id:'old',title:'기존 원고',body:'기존 본문',updated:'2026-09-01T00:00:00Z'};
+const copy=JSON.stringify(legacy);
+const revised=recordDraft({...legacy,body:'수정 본문'},legacy,'other','수동 저장','2026-10-23T00:00:00Z');
+assert.equal(JSON.stringify(legacy),copy);assert.equal(draftCustomer(revised),'choi');assert.equal(revised.versions.length,2);assert.equal(revised.createdAt,undefined);
+const restored=recordDraft(restoreSnapshot(revised,revised.versions[0]),revised,'choi','복원');assert.equal(restored.body,'기존 본문');assert.equal(restored.versions.length,3);
+const fresh=recordDraft({...blankDraft,title:'새 원고',body:'내용'},undefined,'other','생성','2026-10-23T00:00:00Z');
+assert.equal(monthlyStats([fresh,legacy],'other','2026-10').written,1);assert.equal(monthlyStats([fresh,legacy],'choi','2026-10').unknown,1);
+assert.equal(monthlyStats([{...fresh,status:'published',publishedAt:'2026-10-31T16:00:00Z'}],'other','2026-11').published,1);
+const body='첫 문단\n\n둘째 문단\n\n마지막';const blocks=paragraphs(body);assert.equal(blocks.length,3);assert.equal(replaceParagraph(body,blocks[1].start,blocks[1].end,blocks[1].text,'변경'),'첫 문단\n\n변경\n\n마지막');assert.throws(()=>replaceParagraph('수정됨',0,3,'기존','새'));
+assert.ok(compareWriting({...fresh,title:'주민과 함께하는 현장 기록',body:'앞으로도 주민 여러분의 목소리에 귀 기울이겠습니다'},[{id:'ref',title:'주민과 함께하는 현장 기록',body:'앞으로도 주민 여러분의 목소리에 귀 기울이겠습니다'}]).length>=2);
+console.log('PASS stage 1: legacy preservation, customer isolation, version restore, Korean month boundaries, paragraph boundaries and similarity checks');

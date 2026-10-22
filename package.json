@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node tests/studio-data.cjs && node tests/studio-api.cjs && node tests/hashtags.cjs"
   },
   "dependencies": {
     "next": "16.4.2",
@@ -24,3 +25,5 @@
     "typescript": "^5"
   }
 }
+
+
