@@ -41,21 +41,3 @@ yarn-error.log*
 next-env.d.ts
 
 !.env.example
-
-/.local/
-
-# Local customer data, databases, exports, and credentials
-/data/
-/backups/
-/exports/
-*.db
-*.db-*
-*.sqlite
-*.sqlite3
-*.sqlite-*
-*.sqlite3-*
-*.key
-*.p12
-*.pfx
-credentials*.json
-service-account*.json
