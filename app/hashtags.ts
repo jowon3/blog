@@ -1,6 +1,15 @@
-export type TagSettings={additional:string[];recommended:string[];excluded:string[]};
+export type TagSettings={additional:string[];recommended:string[];excluded:string[];required?:string[]};
 export const legacyRequiredTags=["부산진구","부산진구의회","최정웅","최정웅의원"];
 export function normalizeTags(input:string|string[]):string[]{const values=Array.isArray(input)?input:[input];const seen=new Set<string>();const result:string[]=[];for(const value of values){for(const part of value.normalize("NFC").split(/[＃#,\s]+/u)){const tag=part.replace(/[^\p{L}\p{N}_-]/gu,"").slice(0,60);const key=tag.toLocaleLowerCase();if(tag&&!seen.has(key)){seen.add(key);result.push(tag);}}}return result;}
 export function requiredTags(customer:{id:string;requiredTags?:string[]}){return normalizeTags(customer.requiredTags??(customer.id==="choi"?legacyRequiredTags:[]));}
-export function tagSettings(draft:{tags:string[];tagSettings?:TagSettings},customer:{id:string;requiredTags?:string[]}):TagSettings{if(draft.tagSettings)return {additional:normalizeTags(draft.tagSettings.additional),recommended:normalizeTags(draft.tagSettings.recommended),excluded:normalizeTags(draft.tagSettings.excluded)};const legacy=new Set(normalizeTags([...requiredTags(customer),...(customer.id==="choi"?legacyRequiredTags:[])]).map(t=>t.toLocaleLowerCase()));return {additional:normalizeTags(draft.tags).filter(t=>!legacy.has(t.toLocaleLowerCase())),recommended:[],excluded:[]};}
+export function tagSettings(draft:{tags:string[];tagSettings?:TagSettings},customer:{id:string;requiredTags?:string[]}):TagSettings{if(draft.tagSettings)return {...(draft.tagSettings.required===undefined?{}:{required:normalizeTags(draft.tagSettings.required)}),additional:normalizeTags(draft.tagSettings.additional),recommended:normalizeTags(draft.tagSettings.recommended),excluded:normalizeTags(draft.tagSettings.excluded)};const legacy=new Set(normalizeTags([...requiredTags(customer),...(customer.id==="choi"?legacyRequiredTags:[])]).map(t=>t.toLocaleLowerCase()));return {additional:normalizeTags(draft.tags).filter(t=>!legacy.has(t.toLocaleLowerCase())),recommended:[],excluded:[]};}
 export function finalTags(required:string[],settings:TagSettings){const excluded=new Set(normalizeTags(settings.excluded).map(t=>t.toLocaleLowerCase()));return normalizeTags([...required,...settings.additional,...settings.recommended.filter(t=>!excluded.has(t.toLocaleLowerCase()))]);}
+
+// Saved drafts retain their own required tags when customer defaults change.
+export function draftRequiredTags(draft:{id?:string;tags:string[];tagSettings?:TagSettings},customer:{id:string;requiredTags?:string[]}){
+ if(draft.tagSettings?.required!==undefined)return normalizeTags(draft.tagSettings.required);
+ if(!draft.id)return requiredTags(customer);
+ const excluded=new Set(normalizeTags(draft.tagSettings?.excluded||[]).map(t=>t.toLocaleLowerCase()));
+ const other=new Set(normalizeTags([...(draft.tagSettings?.additional||[]),...(draft.tagSettings?.recommended||[]).filter(t=>!excluded.has(t.toLocaleLowerCase()))]).map(t=>t.toLocaleLowerCase()));
+ return normalizeTags(draft.tags).filter(t=>!other.has(t.toLocaleLowerCase()));
+}

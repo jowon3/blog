@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "automation:local": "node scripts/local-automation.cjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node tests/studio-data.cjs && node tests/studio-api.cjs && node tests/hashtags.cjs"
+    "test": "node tests/studio-data.cjs && node tests/studio-api.cjs && node tests/hashtags.cjs && node tests/naver-transfer.cjs && node tests/length-settings.cjs && node tests/tone-examples.cjs && node tests/customer-tags.cjs && node tests/thumbnails.cjs && node tests/miricanvas-transfer.cjs"
   },
   "dependencies": {
     "next": "16.4.2",
@@ -25,5 +26,3 @@
     "typescript": "^5"
   }
 }
-
-
